@@ -7,9 +7,9 @@ export default defineConfig(({ command }) => {
     base: '/',
   }
 
-  if (command !== 'serve') {
-    config.base = '/blackjack-game/'
-  }
+  // if (command !== 'serve') {
+    config.base = '/blackjack-game'
+  // }
 
   return config
 })
