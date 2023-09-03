@@ -25,6 +25,7 @@ const router = createBrowserRouter([
 	},
 ])
 
+// probably too much for this game, just wanna to exercise
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {

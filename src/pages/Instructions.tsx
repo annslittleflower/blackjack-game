@@ -21,7 +21,9 @@ const Instructions = () => {
 			</p>
 			<p>
 				You lose if your current total totals over 21 or your current total is
-				&lt; 21 but lower than the House’s total You tie with the House
+				&lt; 21 but lower than the House’s total
+				<br />
+				You tie with the House
 			</p>
 			<br />
 			<br />
