@@ -1,0 +1,31 @@
+.cardLoader {
+  width: 8rem;
+  max-height: 12rem;
+  padding: 0.5rem 0.5rem;
+  font-size: 1.5rem;
+  border-radius: 0.4rem;
+  color: #fff;
+  animation: skeleton-loading 1s linear infinite alternate;
+  aspect-ratio: 64/89;
+}
+
+.cardLoader::after {
+  content: '?';
+  display: inline-block;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-color: #ff8181;
+  }
+  100% {
+    background-color:#da0017;
+  }
+}
+
+@media (max-width: 45rem) {
+  .cardLoader {
+    max-width: 6rem;
+    height: 8rem;
+  }
+}

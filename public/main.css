@@ -6,6 +6,10 @@ body {
   font-size: 1rem;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 .container {
   max-width: 75rem;
   margin: auto;
@@ -44,10 +48,7 @@ body {
 .dealer-panel {
   display: flex;
   justify-content: flex-end;
-}
-
-.dealer-panel .card-image {
-  margin-left: 1rem;
+  gap: 1rem;
 }
 
 .notification-panel {
@@ -68,6 +69,11 @@ body {
 
 .card-image {
   max-width: 8rem;
+  max-height: 12rem;
+  background-color: #ff8181;
+  border-radius: 0.5rem;
+  width: 100%;
+  aspect-ratio: 64/89;
 }
 
 .hit-button {
@@ -90,10 +96,6 @@ body {
 @media (max-width: 45rem) {
   .card-image {
     max-width: 6rem;
-  }
-
-  .dealer-panel .card-image {
-    margin-left: 0.5rem;
   }
 
   .player-panel .card-image {

@@ -1,6 +1,9 @@
 // import { useState } from 'react'
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
+import CardPlaceholder from '../components/CardPlaceholder'
+
+const DECK_API_URL = 'https://deckofcardsapi.com/api/deck'
 
 /*
   TODO
@@ -60,17 +63,17 @@ type CardDeckData = {
 }
 
 const Home = () => {
+	// query select example https://www.youtube.com/watch?v=fbIb0m_GhlU
+	// query response cache add new stuff to old stuff https://www.youtube.com/watch?v=XI0SN5AI6YA
 	const { data: cardDeckResponse } = useQuery(['cardDeck'], () =>
-		axios.get<CardDeckData>(
-			'https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1'
-		)
+		axios.get<CardDeckData>(`${DECK_API_URL}/new/shuffle/?deck_count=1`)
 	)
 
-	const { data: dealerCards } = useQuery(
+	const { data: dealerCards, isLoading: isDealerCardsLoading } = useQuery(
 		['dealerCards'],
 		() =>
 			axios.get<{ cards: Record<string, unknown>[] }>(
-				`https://deckofcardsapi.com/api/deck/${cardDeckResponse?.data.deck_id}/draw/?count=2`
+				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=2`
 			),
 		{
 			enabled: !!cardDeckResponse?.data.deck_id,
@@ -81,7 +84,7 @@ const Home = () => {
 		['userCards'],
 		() =>
 			axios.get<{ cards: Record<string, unknown>[] }>(
-				`https://deckofcardsapi.com/api/deck/${cardDeckResponse?.data.deck_id}/draw/?count=1`
+				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=1`
 			),
 		{
 			enabled: false,
@@ -90,14 +93,19 @@ const Home = () => {
 
 	console.log('dealerCards', dealerCards)
 	console.log('userCards', userCards)
-	console.log('deckId', cardDeckResponse?.data.deck_id)
-	console.log('remainingCards', cardDeckResponse?.data.remaining)
 
 	const renderDealerCards = () => {
-		if (!dealerCards?.data.cards) return null
+		if (isDealerCardsLoading) {
+			return (
+				<div className='dealer-panel'>
+					<CardPlaceholder />
+					<CardPlaceholder />
+				</div>
+			)
+		}
 		return (
 			<div className='dealer-panel'>
-				{dealerCards.data?.cards.map((c) => (
+				{dealerCards?.data?.cards.map((c) => (
 					<img
 						key={c.code as string}
 						src={c.image as string}
