@@ -1,9 +1,7 @@
-// import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
 import CardPlaceholder from '../components/CardPlaceholder'
-
-const DECK_API_URL = 'https://deckofcardsapi.com/api/deck'
 
 /*
   TODO
@@ -54,8 +52,74 @@ const DECK_API_URL = 'https://deckofcardsapi.com/api/deck'
         dealer draws 2 cards
         player draws 2 cards
 
-
 */
+
+type CardValue =
+	| '2'
+	| '3'
+	| '4'
+	| '5'
+	| '6'
+	| '7'
+	| '8'
+	| '9'
+	| '10'
+	| 'JACK'
+	| 'QUEEN'
+	| 'KING'
+	| 'ACE'
+
+type Card = {
+	code: string
+	image: 'https://deckofcardsapi.com/static/img/aceDiamonds.png'
+	images: {
+		png: 'https://deckofcardsapi.com/static/img/aceDiamonds.png'
+		svg: 'https://deckofcardsapi.com/static/img/aceDiamonds.svg'
+	}
+	suit: string
+	value: CardValue
+}
+
+const getCardValue = (faceValue: CardValue) => {
+	if (faceValue === 'JACK' || faceValue === 'QUEEN' || faceValue === 'KING') {
+		return 10
+	}
+
+	return +faceValue
+}
+
+const getAceValue = (currentTotalValue: number) => {
+	if (currentTotalValue + 11 > 21) return 1
+	return 11
+}
+
+const getTotalSum = (cards: Card[]) => {
+	const cardsWithoutAces = cards.filter((c) => c.value !== 'ACE')
+	const aces = cards.filter((c) => c.value === 'ACE')
+
+	const cardsTotalValue = cardsWithoutAces.reduce(
+		(acc, curVal) => acc + getCardValue(curVal.value),
+		0
+	)
+
+	const acesTotalValue = aces.reduce(
+		(acc) => acc + getAceValue(cardsTotalValue),
+		0
+	)
+
+	const totalValue = cardsTotalValue + acesTotalValue
+
+	return totalValue
+
+	// console.log('cardsWithoutAces', cardsWithoutAces)
+	// console.log('aces', aces)
+	// console.log('cardsTotalValue', cardsTotalValue)
+	// console.log('acesTotalValue', acesTotalValue)
+	// console.log('totalValue', totalValue)
+	// console.log('----------------------')
+}
+
+const DECK_API_URL = 'https://deckofcardsapi.com/api/deck'
 
 type CardDeckData = {
 	deck_id: string
@@ -64,15 +128,14 @@ type CardDeckData = {
 
 const Home = () => {
 	// query select example https://www.youtube.com/watch?v=fbIb0m_GhlU
-	// query response cache add new stuff to old stuff https://www.youtube.com/watch?v=XI0SN5AI6YA
 	const { data: cardDeckResponse } = useQuery(['cardDeck'], () =>
 		axios.get<CardDeckData>(`${DECK_API_URL}/new/shuffle/?deck_count=1`)
 	)
 
-	const { data: dealerCards, isLoading: isDealerCardsLoading } = useQuery(
+	const { data: dealerCards, isFetching: isDealerCardsLoading } = useQuery(
 		['dealerCards'],
 		() =>
-			axios.get<{ cards: Record<string, unknown>[] }>(
+			axios.get<{ cards: Card[] }>(
 				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=2`
 			),
 		{
@@ -80,10 +143,14 @@ const Home = () => {
 		}
 	)
 
-	const { data: userCards, refetch: drawUserCardOnClick } = useQuery(
+	const {
+		data: userCards,
+		refetch: drawUserCardOnClick,
+		isFetching: isUserCardLoading,
+	} = useQuery(
 		['userCards'],
 		() =>
-			axios.get<{ cards: Record<string, unknown>[] }>(
+			axios.get<{ cards: Card[] }>(
 				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=1`
 			),
 		{
@@ -91,24 +158,36 @@ const Home = () => {
 		}
 	)
 
-	console.log('dealerCards', dealerCards)
-	console.log('userCards', userCards)
+	const [allUserCards, setAllUserCards] = useState<Card[]>([])
+
+	useEffect(() => {
+		// react-query onSuccess deprecated
+		if (userCards?.data.cards) {
+			setAllUserCards((prev) => [...prev, ...userCards.data.cards])
+		}
+	}, [userCards])
+
+	useEffect(() => {
+		const userSum = getTotalSum(allUserCards)
+		const dealerSum = getTotalSum((dealerCards?.data?.cards as Card[]) || [])
+
+		console.log('userSum', userSum)
+		console.log('dealerSum', dealerSum)
+	}, [allUserCards, dealerCards])
 
 	const renderDealerCards = () => {
-		if (isDealerCardsLoading) {
-			return (
-				<div className='dealer-panel'>
-					<CardPlaceholder />
-					<CardPlaceholder />
-				</div>
-			)
-		}
 		return (
 			<div className='dealer-panel'>
+				{isDealerCardsLoading ? (
+					<>
+						<CardPlaceholder />
+						<CardPlaceholder />
+					</>
+				) : null}
 				{dealerCards?.data?.cards.map((c) => (
 					<img
-						key={c.code as string}
-						src={c.image as string}
+						key={c.image}
+						src={c.image}
 						className='card-image'
 					/>
 				))}
@@ -125,18 +204,22 @@ const Home = () => {
 		)
 	}
 
-	const renderPlayer = () => {
+	const renderPlayerPanel = () => {
 		return (
 			<div className='player-panel'>
-				{userCards?.data?.cards?.map((c) => (
-					<img
-						key={c.code as string}
-						src={c.image as string}
-						className='card-image'
-					/>
-				))}
+				<div className='player-cards'>
+					{allUserCards.map((c) => (
+						<img
+							key={c.code}
+							src={c.image}
+							className='card-image'
+						/>
+					))}
+					{isUserCardLoading ? <CardPlaceholder /> : null}
+				</div>
 				<button
 					className='hit-button'
+					disabled={isUserCardLoading}
 					onClick={() => drawUserCardOnClick()}
 				>
 					hit
@@ -146,13 +229,11 @@ const Home = () => {
 	}
 
 	return (
-		<main>
-			<div className='game-board'>
-				{renderDealerCards()}
-				{renderNotificationPanel()}
-				{renderPlayer()}
-			</div>
-		</main>
+		<div className='game-board'>
+			{renderDealerCards()}
+			{renderNotificationPanel()}
+			{renderPlayerPanel()}
+		</div>
 	)
 }
 
