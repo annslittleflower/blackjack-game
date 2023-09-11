@@ -1,57 +1,13 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { useQuery } from '@tanstack/react-query'
-import CardPlaceholder from '../components/CardPlaceholder'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import CardPlaceholder from '../components/CardPlaceholder/CardPlaceholder'
 
 /*
   TODO
-
-  find 10 card correct image
-
-  beautiful styles
-  some cool background, not just white
   mobile responsive styles
-  API string const
-  instructions text formatting and youtube videos embedding
-  make possible open instruction and go back to current play (useContext???)
-
-*/
-
-/*
- flow:
-
-  app loads, creates deck with API, deckId is remembered
-  dealer draws 2 cards
-  player draws 2 cards
-
-  check if player wins (because dealer has only 2 cards always)
-
-    if yes
-      show message that player wins
-      show button play again
-      shuffle deck
-      dealer draws 2 cards
-      player draws 2 cards
-
-    if no
-      player hit and draws 1 card
-
-      check if player wins
-
-      if yes
-        show message that player wins
-        show button play again
-        shuffle deck
-        dealer draws 2 cards
-        player draws 2 cards
-
-      if no
-        show message that house wins
-        show button play again
-        shuffle deck
-        dealer draws 2 cards
-        player draws 2 cards
-
+  make possible to open instruction and go back to current game (useContext + useReducer???)
+	better structure and CardImage component
 */
 
 type CardValue =
@@ -71,10 +27,10 @@ type CardValue =
 
 type Card = {
 	code: string
-	image: 'https://deckofcardsapi.com/static/img/aceDiamonds.png'
+	image: string
 	images: {
-		png: 'https://deckofcardsapi.com/static/img/aceDiamonds.png'
-		svg: 'https://deckofcardsapi.com/static/img/aceDiamonds.svg'
+		png: string
+		svg: string
 	}
 	suit: string
 	value: CardValue
@@ -103,52 +59,81 @@ const getTotalSum = (cards: Card[]) => {
 	)
 
 	const acesTotalValue = aces.reduce(
-		(acc) => acc + getAceValue(cardsTotalValue),
+		(acc) => acc + getAceValue(cardsTotalValue + acc),
 		0
 	)
 
 	const totalValue = cardsTotalValue + acesTotalValue
 
 	return totalValue
+}
 
-	// console.log('cardsWithoutAces', cardsWithoutAces)
-	// console.log('aces', aces)
-	// console.log('cardsTotalValue', cardsTotalValue)
-	// console.log('acesTotalValue', acesTotalValue)
-	// console.log('totalValue', totalValue)
-	// console.log('----------------------')
+const canUserTakeMoreCards = (userPoints: number) => userPoints < 21
+
+const checkIfUserWon = (userPoints: number, housePoints: number) => {
+	const equal = userPoints === housePoints
+	const userHasLessThan21 = userPoints < 21
+	const userHasLessThanHouse = userPoints < housePoints
+	const userHasMoreThanHouse = userPoints > housePoints
+	const userHasBlackJack = userPoints === 21
+	const houseHasBlackJack = housePoints === 21
+
+	// looks not optimal, but easier to read and understand
+	if (userHasLessThan21 && userHasLessThanHouse) return false
+
+	// in real world game they split bank 50/50 if i remember correctly
+	// in this game house wins since house has only 2 cards, so he deserves to win for being so lucky
+	if (equal) return false
+
+	if (userHasLessThan21 && userHasMoreThanHouse) return true
+	if (userHasBlackJack && !houseHasBlackJack) return true
 }
 
 const DECK_API_URL = 'https://deckofcardsapi.com/api/deck'
+
+const QUERY_KEYS = {
+	cardDeck: 'cardDeck',
+	dealerCards: 'dealerCards',
+	userCards: 'userCards',
+} as const
 
 type CardDeckData = {
 	deck_id: string
 	remaining: number
 }
 
+const getCardDeck = (deckId?: string): Promise<CardDeckData> =>
+	axios.get(`${DECK_API_URL}/${deckId || 'new'}/shuffle/?deck_count=1`)
+
 const Home = () => {
-	// query select example https://www.youtube.com/watch?v=fbIb0m_GhlU
-	const { data: cardDeckResponse } = useQuery(['cardDeck'], () =>
-		axios.get<CardDeckData>(`${DECK_API_URL}/new/shuffle/?deck_count=1`)
+	const queryClient = useQueryClient()
+	// not new, fix this
+	// cardDeckResponse?.deck_id || ''
+	const { data: cardDeckResponse } = useQuery([QUERY_KEYS.cardDeck], () =>
+		getCardDeck()
 	)
 
-	const { data: dealerCards, isFetching: isDealerCardsLoading } = useQuery(
-		['dealerCards'],
+	const {
+		data: dealerCards,
+		isFetching: isDealerCardsLoading,
+		refetch: drawDealerCards,
+	} = useQuery(
+		[QUERY_KEYS.dealerCards],
 		() =>
 			axios.get<{ cards: Card[] }>(
 				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=2`
 			),
 		{
-			enabled: !!cardDeckResponse?.data.deck_id,
+			enabled: false,
 		}
 	)
 
 	const {
 		data: userCards,
-		refetch: drawUserCardOnClick,
+		refetch: drawUserCard,
 		isFetching: isUserCardLoading,
 	} = useQuery(
-		['userCards'],
+		[QUERY_KEYS.userCards],
 		() =>
 			axios.get<{ cards: Card[] }>(
 				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=1`
@@ -158,22 +143,101 @@ const Home = () => {
 		}
 	)
 
+	// this one looks unnecessary
+	const { refetch: shuffle } = useQuery(
+		['shuffle'],
+		() =>
+			axios.get<{ cards: Card[] }>(
+				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/shuffle/`
+			),
+		{
+			enabled: false,
+		}
+	)
+
 	const [allUserCards, setAllUserCards] = useState<Card[]>([])
+	const [hasUserWon, setHasUserWon] = useState<boolean>(false)
+	const [isGameFinished, setIsGameFinished] = useState<boolean>(false)
+
+	// derived state example
+	// const hasHouseWon = !hasUserWon && isGameFinished
 
 	useEffect(() => {
-		// react-query onSuccess deprecated
+		if (cardDeckResponse?.data.deck_id) {
+			;(async () => {
+				// otherwise parallel requests are made, and same cards return sometimes
+				await drawDealerCards()
+				await drawUserCard()
+			})()
+		}
+	}, [cardDeckResponse, drawUserCard, drawDealerCards])
+
+	useEffect(() => {
+		// react-query onSuccess is deprecated
 		if (userCards?.data.cards) {
 			setAllUserCards((prev) => [...prev, ...userCards.data.cards])
 		}
 	}, [userCards])
 
 	useEffect(() => {
+		if (isDealerCardsLoading || isUserCardLoading || isGameFinished) return
+		const userSum = getTotalSum(allUserCards)
+		const dealerSum = getTotalSum((dealerCards?.data?.cards as Card[]) || [])
+		console.table({ userSum, dealerSum })
+
+		const hasUserBusted = userSum > 21
+
+		if (hasUserBusted || dealerSum === 21) {
+			setHasUserWon(false)
+			setIsGameFinished(true)
+			return
+		}
+
+		if (userSum > dealerSum) {
+			setHasUserWon(true)
+			setIsGameFinished(true)
+			return
+		}
+
+		if (!canUserTakeMoreCards(userSum, dealerSum)) {
+			// here linter says checkIfUserWon can return undefined
+			// after 40m staring at the screen i decided to do this hack
+			// but linter may be correct, linter is cool
+			setHasUserWon(!!checkIfUserWon(userSum, dealerSum))
+			setIsGameFinished(true)
+		}
+	}, [
+		allUserCards,
+		dealerCards,
+		setHasUserWon,
+		setIsGameFinished,
+		isUserCardLoading,
+		isDealerCardsLoading,
+	])
+
+	const stand = () => {
 		const userSum = getTotalSum(allUserCards)
 		const dealerSum = getTotalSum((dealerCards?.data?.cards as Card[]) || [])
 
-		console.log('userSum', userSum)
-		console.log('dealerSum', dealerSum)
-	}, [allUserCards, dealerCards])
+		setHasUserWon(!!checkIfUserWon(userSum, dealerSum))
+		setIsGameFinished(true)
+	}
+
+	const startAgain = async () => {
+		await shuffle()
+		queryClient.setQueriesData([QUERY_KEYS.dealerCards], {
+			data: { cards: [] },
+		})
+
+		await queryClient.refetchQueries({
+			queryKey: [QUERY_KEYS.cardDeck],
+		})
+
+		drawDealerCards()
+		setAllUserCards([])
+		setHasUserWon(false)
+		setIsGameFinished(false)
+	}
 
 	const renderDealerCards = () => {
 		return (
@@ -198,8 +262,16 @@ const Home = () => {
 	const renderNotificationPanel = () => {
 		return (
 			<div className='notification-panel'>
-				notifications and restart button
-				<button>play again</button>
+				{hasUserWon && isGameFinished ? 'you won!' : null}
+				{!hasUserWon && isGameFinished ? 'house won ((' : null}
+				{isGameFinished ? (
+					<button
+						className='play-again'
+						onClick={startAgain}
+					>
+						play again
+					</button>
+				) : null}
 			</div>
 		)
 	}
@@ -217,13 +289,22 @@ const Home = () => {
 					))}
 					{isUserCardLoading ? <CardPlaceholder /> : null}
 				</div>
-				<button
-					className='hit-button'
-					disabled={isUserCardLoading}
-					onClick={() => drawUserCardOnClick()}
-				>
-					hit
-				</button>
+				<div className='player-controls'>
+					<button
+						className='hit-button'
+						disabled={isGameFinished}
+						onClick={() => drawUserCard()}
+					>
+						hit
+					</button>
+					<button
+						className='stand-button'
+						disabled={isGameFinished}
+						onClick={() => stand()}
+					>
+						stand
+					</button>
+				</div>
 			</div>
 		)
 	}
