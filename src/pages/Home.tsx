@@ -102,15 +102,19 @@ type CardDeckData = {
 	remaining: number
 }
 
-const getCardDeck = (deckId?: string): Promise<CardDeckData> =>
-	axios.get(`${DECK_API_URL}/${deckId || 'new'}/shuffle/?deck_count=1`)
+// const getCardDeck = (deckId?: string): Promise<CardDeckData> =>
+// 	axios.get(`${DECK_API_URL}/${deckId || 'new'}/shuffle/?deck_count=1`)
 
 const Home = () => {
 	const queryClient = useQueryClient()
 	// not new, fix this
 	// cardDeckResponse?.deck_id || ''
-	const { data: cardDeckResponse } = useQuery([QUERY_KEYS.cardDeck], () =>
-		getCardDeck()
+	const { data: cardDeckId } = useQuery(
+		[QUERY_KEYS.cardDeck],
+		() => axios.get<CardDeckData>(`${DECK_API_URL}/new/shuffle/?deck_count=1`),
+		{
+			select: (d) => d.data.deck_id,
+		}
 	)
 
 	const {
@@ -121,7 +125,7 @@ const Home = () => {
 		[QUERY_KEYS.dealerCards],
 		() =>
 			axios.get<{ cards: Card[] }>(
-				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=2`
+				`${DECK_API_URL}/${cardDeckId}/draw/?count=2`
 			),
 		{
 			enabled: false,
@@ -136,7 +140,7 @@ const Home = () => {
 		[QUERY_KEYS.userCards],
 		() =>
 			axios.get<{ cards: Card[] }>(
-				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/draw/?count=1`
+				`${DECK_API_URL}/${cardDeckId}/draw/?count=1`
 			),
 		{
 			enabled: false,
@@ -147,9 +151,7 @@ const Home = () => {
 	const { refetch: shuffle } = useQuery(
 		['shuffle'],
 		() =>
-			axios.get<{ cards: Card[] }>(
-				`${DECK_API_URL}/${cardDeckResponse?.data.deck_id}/shuffle/`
-			),
+			axios.get<{ cards: Card[] }>(`${DECK_API_URL}/${cardDeckId}/shuffle/`),
 		{
 			enabled: false,
 		}
@@ -163,14 +165,14 @@ const Home = () => {
 	// const hasHouseWon = !hasUserWon && isGameFinished
 
 	useEffect(() => {
-		if (cardDeckResponse?.data.deck_id) {
+		if (cardDeckId) {
 			;(async () => {
 				// otherwise parallel requests are made, and same cards return sometimes
 				await drawDealerCards()
 				await drawUserCard()
 			})()
 		}
-	}, [cardDeckResponse, drawUserCard, drawDealerCards])
+	}, [cardDeckId, drawUserCard, drawDealerCards])
 
 	useEffect(() => {
 		// react-query onSuccess is deprecated
@@ -199,7 +201,7 @@ const Home = () => {
 			return
 		}
 
-		if (!canUserTakeMoreCards(userSum, dealerSum)) {
+		if (!canUserTakeMoreCards(userSum)) {
 			// here linter says checkIfUserWon can return undefined
 			// after 40m staring at the screen i decided to do this hack
 			// but linter may be correct, linter is cool
@@ -213,6 +215,7 @@ const Home = () => {
 		setIsGameFinished,
 		isUserCardLoading,
 		isDealerCardsLoading,
+		isGameFinished,
 	])
 
 	const stand = () => {
@@ -224,17 +227,19 @@ const Home = () => {
 	}
 
 	const startAgain = async () => {
+		setAllUserCards([])
 		await shuffle()
 		queryClient.setQueriesData([QUERY_KEYS.dealerCards], {
 			data: { cards: [] },
 		})
 
-		await queryClient.refetchQueries({
-			queryKey: [QUERY_KEYS.cardDeck],
-		})
+		// await queryClient.refetchQueries({
+		// 	queryKey: [QUERY_KEYS.cardDeck],
+		// })
 
-		drawDealerCards()
-		setAllUserCards([])
+		await drawDealerCards()
+		await drawUserCard()
+
 		setHasUserWon(false)
 		setIsGameFinished(false)
 	}
