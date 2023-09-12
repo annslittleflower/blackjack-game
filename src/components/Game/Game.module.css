@@ -1,0 +1,105 @@
+.gameBoard {
+  padding: 0 1rem;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dealerPanel {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.notificationPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2rem;
+  font-size: 1.5rem;
+}
+
+.playerPanel {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hitButton {
+  width: 5rem;
+  height: 5rem;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 0;
+  background-color: #ff3030;
+  color: white;
+}
+
+.hitButton:active, .hitButton:hover  {
+  background-color: #ff0000;
+}
+
+.standButton {
+  width: 5rem;
+  height: 5rem;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 0;
+  background-color: #0d760b;
+  color: white;
+}
+
+.standButton:active, .standButton:hover  {
+  background-color: #238f00;
+}
+
+
+.hitButton:disabled, .standButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.playerControls {
+  display: flex;
+  margin-top: 3rem;
+  gap: 2rem;
+}
+
+.playerCards {
+  display: flex;
+  gap: 1rem;
+  max-height: 11.125rem;
+  position: relative;
+  width: 100%;
+  align-items: flex-end;
+}
+
+.playAgain {
+  border-radius: 0.25rem;
+  background-color: #ff5151;
+  color: #fff;
+  border: 0;
+  min-height: 2rem;
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.playAgain:hover, .playAgain:hover {
+  background-color: #ff0000;
+}
+
+@media (max-width: 63rem) {
+  .playerCards {
+    height: 7rem;
+  }
+
+  .playerCards img {
+    position: absolute;
+  }
+}

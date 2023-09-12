@@ -42,99 +42,6 @@ iframe {
   color: #fff;
 }
 
-.game-board {
-  padding: 0 1rem;
-  height: 80vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.dealer-panel {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.notification-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 2rem;
-  font-size: 1.5rem;
-}
-
-.player-panel {
-  display: flex;
-  justify-content: center;
-  flex-direction: column;
-  align-items: center;
-}
-
-.card-image {
-  max-width: 8rem;
-  min-width: 8rem;
-  max-height: 12rem;
-  background-color: #ff8181;
-  border-radius: 0.5rem;
-  width: 100%;
-  aspect-ratio: 64/89;
-}
-
-.hit-button {
-  width: 5rem;
-  height: 5rem;
-  font-size: 1.5rem;
-  cursor: pointer;
-  border-radius: 50%;
-  border: 0;
-  background-color: #ff3030;
-  color: white;
-}
-
-.hit-button:active, .hit-button:hover  {
-  background-color: #ff0000;
-}
-
-.stand-button {
-  width: 5rem;
-  height: 5rem;
-  font-size: 1.5rem;
-  cursor: pointer;
-  border-radius: 50%;
-  border: 0;
-  background-color: #0d760b;
-  color: white;
-}
-
-.stand-button:active, .stand-button:hover  {
-  background-color: #238f00;
-}
-
-
-.hit-button:disabled, .stand-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.player-controls {
-  display: flex;
-  margin-top: 3rem;
-  gap: 2rem;
-}
-
-.player-cards {
-  display: flex;
-  gap: 1rem;
-  max-height: 11.125rem;
-  position: relative;
-  width: 100%;
-  align-items: flex-end;
-}
-
-
-
 .instructions {
   font-size: 1.5rem;
   padding: 0 1rem 1rem 1rem;
@@ -153,38 +60,7 @@ iframe {
   margin-top: 0.5rem;
 }
 
-.play-again {
-  border-radius: 0.25rem;
-  background-color: #ff5151;
-  color: #fff;
-  border: 0;
-  min-height: 2rem;
-  font-size: 1.5rem;
-  padding: 0.5rem;
-  cursor: pointer;
-}
-
-.play-again:hover, .play-again:hover {
-  background-color: #ff0000;
-}
-
 @media (max-width: 63rem) {
-
-  .player-cards {
-    height: 7rem;
-  }
-
-  .player-cards .card-image {
-    position: absolute;
-  }
-
-  .card-image {
-    max-width: 5rem;
-    min-width: 5rem;
-    max-height: 12rem;
-    border-radius: 0.23rem;
-  }
-
   .embed-video iframe {
     width: 300px;
     height: 200px;
