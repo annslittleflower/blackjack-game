@@ -1,3 +1,7 @@
-import { useEffect, useState } from 'react'
+// import { useEffect, useState } from 'react'
 
-const useGame = () => {}
+const useGame = () => {
+	console.log('awdadw')
+}
+
+export default useGame
