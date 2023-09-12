@@ -11,6 +11,10 @@ body {
   box-sizing: border-box;
 }
 
+iframe {
+  border: 0;
+}
+
 .container {
   max-width: 75rem;
   margin: auto;
@@ -50,7 +54,6 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  min-height: 11.125rem;
 }
 
 .notification-panel {
@@ -124,8 +127,13 @@ body {
 .player-cards {
   display: flex;
   gap: 1rem;
-  min-height: 11.125rem;
+  max-height: 11.125rem;
+  position: relative;
+  width: 100%;
+  align-items: flex-end;
 }
+
+
 
 .instructions {
   font-size: 1.5rem;
@@ -160,9 +168,21 @@ body {
   background-color: #ff0000;
 }
 
-@media (max-width: 45rem) {
+@media (max-width: 63rem) {
+
+  .player-cards {
+    height: 7rem;
+  }
+
+  .player-cards .card-image {
+    position: absolute;
+  }
+
   .card-image {
-    max-width: 6rem;
+    max-width: 5rem;
+    min-width: 5rem;
+    max-height: 12rem;
+    border-radius: 0.23rem;
   }
 
   .embed-video iframe {

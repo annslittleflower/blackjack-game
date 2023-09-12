@@ -7,7 +7,7 @@ import CardPlaceholder from '../components/CardPlaceholder/CardPlaceholder'
   TODO
   mobile responsive styles
   make possible to open instruction and go back to current game (useContext + useReducer???)
-	better structure and CardImage component
+	better structure and CardImage component, Game component, Home only to show Game
 */
 
 type CardValue =
@@ -63,9 +63,7 @@ const getTotalSum = (cards: Card[]) => {
 		0
 	)
 
-	const totalValue = cardsTotalValue + acesTotalValue
-
-	return totalValue
+	return cardsTotalValue + acesTotalValue
 }
 
 const canUserTakeMoreCards = (userPoints: number) => userPoints < 21
@@ -102,13 +100,9 @@ type CardDeckData = {
 	remaining: number
 }
 
-// const getCardDeck = (deckId?: string): Promise<CardDeckData> =>
-// 	axios.get(`${DECK_API_URL}/${deckId || 'new'}/shuffle/?deck_count=1`)
-
 const Home = () => {
 	const queryClient = useQueryClient()
-	// not new, fix this
-	// cardDeckResponse?.deck_id || ''
+
 	const { data: cardDeckId } = useQuery(
 		[QUERY_KEYS.cardDeck],
 		() => axios.get<CardDeckData>(`${DECK_API_URL}/new/shuffle/?deck_count=1`),
@@ -160,9 +154,6 @@ const Home = () => {
 	const [allUserCards, setAllUserCards] = useState<Card[]>([])
 	const [hasUserWon, setHasUserWon] = useState<boolean>(false)
 	const [isGameFinished, setIsGameFinished] = useState<boolean>(false)
-
-	// derived state example
-	// const hasHouseWon = !hasUserWon && isGameFinished
 
 	useEffect(() => {
 		if (cardDeckId) {
@@ -233,10 +224,6 @@ const Home = () => {
 			data: { cards: [] },
 		})
 
-		// await queryClient.refetchQueries({
-		// 	queryKey: [QUERY_KEYS.cardDeck],
-		// })
-
 		await drawDealerCards()
 		await drawUserCard()
 
@@ -265,6 +252,7 @@ const Home = () => {
 	}
 
 	const renderNotificationPanel = () => {
+		if (!allUserCards.length) return null
 		return (
 			<div className='notification-panel'>
 				{hasUserWon && isGameFinished ? 'you won!' : null}
@@ -285,13 +273,22 @@ const Home = () => {
 		return (
 			<div className='player-panel'>
 				<div className='player-cards'>
-					{allUserCards.map((c) => (
+					{[
+						...allUserCards,
+						// ...allUserCards,
+						// ...allUserCards,
+						// ...allUserCards,
+					].map((c, index) => (
 						<img
 							key={c.code}
 							src={c.image}
 							className='card-image'
+							style={{
+								left: index * 20,
+							}}
 						/>
 					))}
+
 					{isUserCardLoading ? <CardPlaceholder /> : null}
 				</div>
 				<div className='player-controls'>
