@@ -82,14 +82,14 @@ const Game = () => {
 
 	useEffect(() => {
 		if (cardDeckId && !userCards?.length) {
-			console.log('eff 1')
+			// console.log('eff 1')
 			;(async () => {
 				// otherwise parallel requests are made, and same cards return sometimes
 				await drawDealerCards()
 				await drawUserCard()
 			})()
 		}
-	}, [cardDeckId, drawUserCard, drawDealerCards, userCards])
+	}, [cardDeckId, drawUserCard, drawDealerCards, userCards, allUserCards])
 
 	useEffect(() => {
 		// react-query onSuccess is deprecated
