@@ -30,7 +30,25 @@ export const getTotalSum = (cards: Card[]) => {
 	return cardsTotalValue + acesTotalValue
 }
 
-export const canUserTakeMoreCards = (userPoints: number) => userPoints < 21
+export const canUserTakeMoreCards = (
+	userPoints: number,
+	housePoints: number
+) => {
+	if (userPoints > housePoints) return false
+
+	if (userPoints < housePoints || userPoints < 21) return true
+}
+
+export const quickCheckIfUserLost = (
+	userPoints: number,
+	housePoints: number
+) => {
+	const hasUserBusted = userPoints > 21
+
+	const houseHasBlackJack = housePoints === 21
+
+	if (hasUserBusted || houseHasBlackJack) return true
+}
 
 export const checkIfUserWon = (userPoints: number, housePoints: number) => {
 	const equal = userPoints === housePoints
@@ -39,14 +57,16 @@ export const checkIfUserWon = (userPoints: number, housePoints: number) => {
 	const userHasMoreThanHouse = userPoints > housePoints
 	const userHasBlackJack = userPoints === 21
 	const houseHasBlackJack = housePoints === 21
+	const hasUserBusted = userPoints > 21
 
+	// something is wrong with 2 functions doing almost the same job, but cannot figure out nice solution for now
 	// looks not optimal, but easier to read and understand
+	if (hasUserBusted) return false
 	if (userHasLessThan21 && userHasLessThanHouse) return false
 
 	// in real world game they split bank 50/50 if i remember correctly
 	// in this game house wins since house has only 2 cards, so he deserves to win for being so lucky
 	if (equal) return false
-
 	if (userHasLessThan21 && userHasMoreThanHouse) return true
 	if (userHasBlackJack && !houseHasBlackJack) return true
 }

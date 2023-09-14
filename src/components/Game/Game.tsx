@@ -8,7 +8,12 @@ import CardImage from '../CardImage/CardImage'
 import CardPlaceholder from '../CardPlaceholder/CardPlaceholder'
 
 import type { CardDeckData, Card } from './types'
-import { getTotalSum, canUserTakeMoreCards, checkIfUserWon } from './helpers'
+import {
+	getTotalSum,
+	canUserTakeMoreCards,
+	quickCheckIfUserLost,
+	checkIfUserWon,
+} from './helpers'
 
 import styles from './Game.module.css'
 
@@ -106,24 +111,20 @@ const Game = () => {
 		const dealerSum = getTotalSum((dealerCards?.data?.cards as Card[]) || [])
 		console.table({ userSum, dealerSum })
 
-		const hasUserBusted = userSum > 21
+		const userQuickLost = quickCheckIfUserLost(userSum, dealerSum)
 
-		if (hasUserBusted || dealerSum === 21) {
+		if (userQuickLost) {
 			setHasUserWon(false)
 			setIsGameFinished(true)
 			return
 		}
 
-		if (userSum > dealerSum) {
-			setHasUserWon(true)
-			setIsGameFinished(true)
-			return
-		}
-
-		if (!canUserTakeMoreCards(userSum)) {
+		console.log('can', canUserTakeMoreCards(userSum, dealerSum))
+		if (!canUserTakeMoreCards(userSum, dealerSum)) {
 			// here linter says checkIfUserWon can return undefined
 			// after 40m staring at the screen i decided to do this hack
 			// but linter may be correct, linter is cool
+			console.log('check:', checkIfUserWon(userSum, dealerSum))
 			setHasUserWon(!!checkIfUserWon(userSum, dealerSum))
 			setIsGameFinished(true)
 		}
