@@ -29,6 +29,7 @@ const QUERY_KEYS = {
 	cardDeck: 'cardDeck',
 	dealerCards: 'dealerCards',
 	userCards: 'userCards',
+	shuffle: 'shuffle',
 }
 
 type GameContextType = {
@@ -69,7 +70,7 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 		isFetching: isDealerCardsLoading,
 		refetch: drawDealerCards,
 	} = useQuery(
-		[QUERY_KEYS.dealerCards, cardDeckId],
+		[QUERY_KEYS.dealerCards],
 		() => getDealerCards(cardDeckId as string),
 		{
 			select: (d) => d.data.cards,
@@ -91,7 +92,7 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 	)
 
 	const { refetch: shuffle } = useQuery(
-		['shuffle'],
+		[QUERY_KEYS.shuffle],
 		() => shuffleExistingDeck(cardDeckId as string),
 		{
 			enabled: false,
