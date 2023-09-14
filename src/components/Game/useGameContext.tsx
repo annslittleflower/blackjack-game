@@ -1,21 +1,16 @@
 import {
 	useContext,
 	createContext,
-	useState,
 	useEffect,
+	useReducer,
 	ReactNode,
 } from 'react'
-import {
-	useQuery,
-	useQueryClient,
-	QueryObserverBaseResult,
-} from '@tanstack/react-query'
 
 import {
-	getNewDeck,
-	getDealerCards,
-	getUserCard,
-	shuffleExistingDeck,
+	getNewDeckRequest,
+	getDealerCardsRequest,
+	getUserCardRequest,
+	shuffleExistingDeckRequest,
 } from './api'
 import type { Card } from './types'
 import {
@@ -25,148 +20,203 @@ import {
 	checkIfUserWon,
 } from './helpers'
 
-const QUERY_KEYS = {
-	cardDeck: 'cardDeck',
-	dealerCards: 'dealerCards',
-	userCards: 'userCards',
-	shuffle: 'shuffle',
-}
-
-type GameContextType = {
+type GameStateType = {
 	isDealerCardsLoading: boolean
 	isCardDeckLoading: boolean
 	isUserCardLoading: boolean
 	isGameFinished: boolean
 	hasUserWon: boolean
 
+	cardDeckId: string
 	dealerCards: Card[]
-	allUserCards: Card[]
-
-	stand: () => void
-	startAgain: () => Promise<void>
-	drawUserCard: QueryObserverBaseResult['refetch']
+	userCards: Card[]
 }
+
+type GameContextType = {
+	stand: () => void
+	startAgain: () => void
+	drawUserCard: () => void
+} & GameStateType
 
 export const GameContext = createContext<GameContextType | null>(null)
 
+const ACTION_TYPES = {
+	CARD_DECK_LOADED: 'CARD_DECK_LOADED',
+	DEALER_CARDS_LOADED: 'DEALER_CARDS_LOADED',
+	USER_CARD_LOADED: 'USER_CARD_LOADED',
+
+	PLAY_AGAIN: 'PLAY_AGAIN',
+	STAND: 'STAND',
+} as const
+
+type GameActionType = {
+	type: keyof typeof ACTION_TYPES
+	payload?: string | Card | Card[]
+}
+
+const initialState: GameStateType = {
+	isCardDeckLoading: true,
+	isDealerCardsLoading: true,
+	isUserCardLoading: true,
+	isGameFinished: false,
+	hasUserWon: false,
+	cardDeckId: '',
+	dealerCards: [],
+	userCards: [],
+}
+
+const reducer = (
+	state: GameStateType,
+	action: GameActionType
+): GameStateType => {
+	const { type, payload } = action
+
+	switch (type) {
+		case ACTION_TYPES.CARD_DECK_LOADED:
+			return {
+				...state,
+				isCardDeckLoading: false,
+				cardDeckId: payload as string,
+			}
+		case ACTION_TYPES.DEALER_CARDS_LOADED:
+			return {
+				...state,
+				isDealerCardsLoading: false,
+				dealerCards: payload as Card[],
+			}
+		case ACTION_TYPES.USER_CARD_LOADED: {
+			const newCards = [...state.userCards, ...(payload as Card[])]
+			const userSum = getTotalSum(newCards)
+			const dealerSum = getTotalSum(state.dealerCards)
+			console.table({ userSum, dealerSum })
+
+			const userQuickLost = quickCheckIfUserLost(userSum, dealerSum)
+
+			if (userQuickLost) {
+				return {
+					...state,
+					userCards: newCards,
+					hasUserWon: false,
+					isGameFinished: true,
+				}
+			}
+
+			if (!canUserTakeMoreCards(userSum, dealerSum)) {
+				return {
+					...state,
+					userCards: newCards,
+					// here linter says checkIfUserWon can return undefined
+					// after 40m staring at the screen i decided to do this hack
+					// but linter may be correct, linter is cool
+					hasUserWon: !!checkIfUserWon(userSum, dealerSum),
+					isGameFinished: true,
+				}
+			}
+			return {
+				...state,
+				isUserCardLoading: false,
+				userCards: newCards,
+			}
+		}
+		case ACTION_TYPES.STAND: {
+			const userSum = getTotalSum(state.userCards)
+			const dealerSum = getTotalSum(state.dealerCards)
+			return {
+				...state,
+				hasUserWon: !!checkIfUserWon(userSum, dealerSum),
+				isGameFinished: true,
+			}
+		}
+		case ACTION_TYPES.PLAY_AGAIN:
+			return {
+				...state,
+				hasUserWon: false,
+				isGameFinished: false,
+				userCards: [],
+				dealerCards: [],
+			}
+		default:
+			return state
+	}
+}
+
 const GameContextProvider = ({ children }: { children: ReactNode }) => {
-	const queryClient = useQueryClient()
-
-	const [allUserCards, setAllUserCards] = useState<Card[]>([])
-	const [hasUserWon, setHasUserWon] = useState<boolean>(false)
-	const [isGameFinished, setIsGameFinished] = useState<boolean>(false)
-
-	const { data: cardDeckId, isFetching: isCardDeckLoading } = useQuery(
-		[QUERY_KEYS.cardDeck],
-		getNewDeck,
+	const [
 		{
-			select: (d) => d.data.deck_id,
-			refetchOnMount: false,
-		}
-	)
-
-	const {
-		data: dealerCards = [],
-		isFetching: isDealerCardsLoading,
-		refetch: drawDealerCards,
-	} = useQuery(
-		[QUERY_KEYS.dealerCards],
-		() => getDealerCards(cardDeckId as string),
-		{
-			select: (d) => d.data.cards,
-			enabled: false,
-		}
-	)
-
-	const {
-		data: userCards,
-		refetch: drawUserCard,
-		isFetching: isUserCardLoading,
-	} = useQuery(
-		[QUERY_KEYS.userCards],
-		() => getUserCard(cardDeckId as string),
-		{
-			enabled: false,
-			select: (d) => d.data.cards,
-		}
-	)
-
-	const { refetch: shuffle } = useQuery(
-		[QUERY_KEYS.shuffle],
-		() => shuffleExistingDeck(cardDeckId as string),
-		{
-			enabled: false,
-		}
-	)
+			cardDeckId,
+			userCards,
+			dealerCards,
+			hasUserWon,
+			isGameFinished,
+			isCardDeckLoading,
+			isDealerCardsLoading,
+			isUserCardLoading,
+		},
+		dispatch,
+	] = useReducer(reducer, initialState)
 
 	useEffect(() => {
-		if (cardDeckId && !userCards?.length) {
-			;(async () => {
-				// otherwise parallel requests are made, and same cards return sometimes
-				await drawDealerCards()
-				await drawUserCard()
-			})()
-		}
-	}, [cardDeckId, drawUserCard, drawDealerCards, userCards, allUserCards])
+		;(async () => {
+			const newDeckResponse = await getNewDeckRequest()
 
-	useEffect(() => {
-		// react-query onSuccess is deprecated
-		if (userCards) {
-			setAllUserCards((prev) => [...prev, ...userCards])
-		}
-	}, [userCards])
+			const newDeckId = newDeckResponse.data.deck_id
 
-	useEffect(() => {
-		if (isDealerCardsLoading || isUserCardLoading || isGameFinished) return
-		const userSum = getTotalSum(allUserCards)
-		const dealerSum = getTotalSum(dealerCards)
-		console.table({ userSum, dealerSum })
+			dispatch({
+				type: ACTION_TYPES.CARD_DECK_LOADED,
+				payload: newDeckId,
+			})
 
-		const userQuickLost = quickCheckIfUserLost(userSum, dealerSum)
+			const dealerCardsResponse = await getDealerCardsRequest(newDeckId)
 
-		if (userQuickLost) {
-			setHasUserWon(false)
-			setIsGameFinished(true)
-			return
-		}
+			dispatch({
+				type: ACTION_TYPES.DEALER_CARDS_LOADED,
+				payload: dealerCardsResponse.data.cards,
+			})
 
-		if (!canUserTakeMoreCards(userSum, dealerSum)) {
-			// here linter says checkIfUserWon can return undefined
-			// after 40m staring at the screen i decided to do this hack
-			// but linter may be correct, linter is cool
-			setHasUserWon(!!checkIfUserWon(userSum, dealerSum))
-			setIsGameFinished(true)
-		}
-	}, [
-		allUserCards,
-		dealerCards,
-		setHasUserWon,
-		setIsGameFinished,
-		isUserCardLoading,
-		isDealerCardsLoading,
-		isGameFinished,
-	])
+			const userCardResponse = await getUserCardRequest(newDeckId)
 
-	const stand = () => {
-		const userSum = getTotalSum(allUserCards)
-		const dealerSum = getTotalSum(dealerCards)
+			dispatch({
+				type: ACTION_TYPES.USER_CARD_LOADED,
+				payload: userCardResponse.data.cards,
+			})
+		})()
+	}, [])
 
-		setHasUserWon(!!checkIfUserWon(userSum, dealerSum))
-		setIsGameFinished(true)
+	const drawUserCard = async () => {
+		const userCardResponse = await getUserCardRequest(cardDeckId as string)
+
+		dispatch({
+			type: ACTION_TYPES.USER_CARD_LOADED,
+			payload: userCardResponse.data.cards,
+		})
+	}
+
+	const stand = async () => {
+		dispatch({
+			type: ACTION_TYPES.STAND,
+		})
 	}
 
 	const startAgain = async () => {
-		setAllUserCards([])
-		await shuffle()
-		queryClient.setQueriesData([QUERY_KEYS.dealerCards], {
-			data: { cards: [] },
+		dispatch({
+			type: ACTION_TYPES.PLAY_AGAIN,
 		})
 
-		await drawDealerCards()
-		await drawUserCard()
+		await shuffleExistingDeckRequest(cardDeckId)
 
-		setHasUserWon(false)
-		setIsGameFinished(false)
+		const dealerCardsResponse = await getDealerCardsRequest(cardDeckId)
+
+		dispatch({
+			type: ACTION_TYPES.DEALER_CARDS_LOADED,
+			payload: dealerCardsResponse.data.cards,
+		})
+
+		const userCardResponse = await getUserCardRequest(cardDeckId)
+
+		dispatch({
+			type: ACTION_TYPES.USER_CARD_LOADED,
+			payload: userCardResponse.data.cards,
+		})
 	}
 
 	return (
@@ -178,7 +228,8 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 				isGameFinished,
 				hasUserWon,
 				dealerCards,
-				allUserCards,
+				userCards,
+				cardDeckId,
 				stand,
 				startAgain,
 				drawUserCard,

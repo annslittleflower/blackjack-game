@@ -1,17 +1,12 @@
 import { useGameContext } from './useGameContext'
 
 // TODO import aliases
+// TODO check loading states UX
+
 import CardImage from '../CardImage/CardImage'
 import CardPlaceholder from '../CardPlaceholder/CardPlaceholder'
 
 import styles from './Game.module.css'
-
-// const GAME_STATE = {
-// 	USER_WON: 'USER_WON',
-// 	HOUSE_WON: 'HOUSE_WON',
-// 	GAME_STARTED: 'GAME_STARTED',
-// 	GAME_FINISHED: 'GAME_FINISHED',
-// }
 
 const Game = () => {
 	const {
@@ -20,7 +15,7 @@ const Game = () => {
 		isUserCardLoading,
 		isGameFinished,
 		dealerCards,
-		allUserCards,
+		userCards,
 		hasUserWon,
 		stand,
 		startAgain,
@@ -47,7 +42,6 @@ const Game = () => {
 	}
 
 	const renderNotificationPanel = () => {
-		if (!allUserCards.length) return null
 		return (
 			<div className={styles.notificationPanel}>
 				{hasUserWon && isGameFinished ? 'you won!' : null}
@@ -68,7 +62,7 @@ const Game = () => {
 		return (
 			<div className={styles.playerPanel}>
 				<div className={styles.playerCards}>
-					{allUserCards.map((c, index) => (
+					{userCards.map((c, index) => (
 						<CardImage
 							key={c.code}
 							src={c.image}

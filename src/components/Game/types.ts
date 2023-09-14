@@ -23,8 +23,3 @@ export type Card = {
 	suit: string
 	value: CardValue
 }
-
-export type CardDeckData = {
-	deck_id: string
-	remaining: number
-}

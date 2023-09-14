@@ -24,7 +24,6 @@ module.exports = {
         'beforeSelfClosing': 'always'
       }
     ],
-    'indent': [2, 'tab'],
     'no-tabs': 0,
     'react/react-in-jsx-scope': 'off',
     'react/jsx-equals-spacing': 'error',
