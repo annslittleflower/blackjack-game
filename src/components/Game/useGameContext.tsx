@@ -5,23 +5,25 @@ import {
 	useEffect,
 	ReactNode,
 } from 'react'
-
 import {
 	useQuery,
 	useQueryClient,
 	QueryObserverBaseResult,
 } from '@tanstack/react-query'
-import axios, { AxiosResponse } from 'axios'
 
-import type { CardDeckData, Card } from './types'
+import {
+	getNewDeck,
+	getDealerCards,
+	getUserCard,
+	shuffleExistingDeck,
+} from './api'
+import type { Card } from './types'
 import {
 	getTotalSum,
 	canUserTakeMoreCards,
 	quickCheckIfUserLost,
 	checkIfUserWon,
 } from './helpers'
-
-const DECK_API_URL = 'https://deckofcardsapi.com/api/deck'
 
 const QUERY_KEYS = {
 	cardDeck: 'cardDeck',
@@ -55,7 +57,7 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 
 	const { data: cardDeckId, isFetching: isCardDeckLoading } = useQuery(
 		[QUERY_KEYS.cardDeck],
-		() => axios.get<CardDeckData>(`${DECK_API_URL}/new/shuffle/?deck_count=1`),
+		getNewDeck,
 		{
 			select: (d) => d.data.deck_id,
 			refetchOnMount: false,
@@ -67,11 +69,8 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 		isFetching: isDealerCardsLoading,
 		refetch: drawDealerCards,
 	} = useQuery(
-		[QUERY_KEYS.dealerCards],
-		() =>
-			axios.get<{ cards: Card[] }>(
-				`${DECK_API_URL}/${cardDeckId}/draw/?count=2`
-			),
+		[QUERY_KEYS.dealerCards, cardDeckId],
+		() => getDealerCards(cardDeckId as string),
 		{
 			select: (d) => d.data.cards,
 			enabled: false,
@@ -84,23 +83,16 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 		isFetching: isUserCardLoading,
 	} = useQuery(
 		[QUERY_KEYS.userCards],
-		() =>
-			axios.get<{ cards: Card[] }>(
-				`${DECK_API_URL}/${cardDeckId}/draw/?count=1`
-			),
+		() => getUserCard(cardDeckId as string),
 		{
 			enabled: false,
-			refetchOnMount: false,
 			select: (d) => d.data.cards,
 		}
 	)
 
 	const { refetch: shuffle } = useQuery(
 		['shuffle'],
-		() =>
-			axios.get<AxiosResponse<Card[]>>(
-				`${DECK_API_URL}/${cardDeckId}/shuffle/`
-			),
+		() => shuffleExistingDeck(cardDeckId as string),
 		{
 			enabled: false,
 		}
@@ -108,7 +100,6 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 
 	useEffect(() => {
 		if (cardDeckId && !userCards?.length) {
-			// console.log('eff 1')
 			;(async () => {
 				// otherwise parallel requests are made, and same cards return sometimes
 				await drawDealerCards()
@@ -120,8 +111,6 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 	useEffect(() => {
 		// react-query onSuccess is deprecated
 		if (userCards) {
-			console.log('eff 2')
-
 			setAllUserCards((prev) => [...prev, ...userCards])
 		}
 	}, [userCards])
@@ -129,7 +118,7 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 	useEffect(() => {
 		if (isDealerCardsLoading || isUserCardLoading || isGameFinished) return
 		const userSum = getTotalSum(allUserCards)
-		const dealerSum = getTotalSum(dealerCards || [])
+		const dealerSum = getTotalSum(dealerCards)
 		console.table({ userSum, dealerSum })
 
 		const userQuickLost = quickCheckIfUserLost(userSum, dealerSum)
