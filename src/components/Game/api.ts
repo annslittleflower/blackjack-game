@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios'
+import axios from 'axios'
 
 import type { Card } from './types'
 
@@ -19,7 +19,7 @@ const getUserCardRequest = (cardDeckId: string) =>
 	axios.get<{ cards: Card[] }>(`${DECK_API_URL}/${cardDeckId}/draw/?count=1`)
 
 const shuffleExistingDeckRequest = (cardDeckId: string) =>
-	axios.get<AxiosResponse<Card[]>>(`${DECK_API_URL}/${cardDeckId}/shuffle/`)
+	axios.get(`${DECK_API_URL}/${cardDeckId}/shuffle/`)
 
 export {
 	getNewDeckRequest,

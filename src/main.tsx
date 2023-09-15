@@ -1,10 +1,12 @@
+import { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 
-import GameContextProvider from './components/Game/useGameContext'
+import GameContextProvider from '@/components/Game/useGameContext'
 import App from './App.tsx'
 import Home from './pages/Home.tsx'
-import Instructions from './pages/Instructions.tsx'
+
+const Instructions = lazy(() => import('./pages/Instructions.tsx'))
 
 const router = createBrowserRouter([
 	{
@@ -17,7 +19,11 @@ const router = createBrowserRouter([
 			},
 			{
 				path: '/blackjack-game/instructions',
-				element: <Instructions />,
+				element: (
+					<Suspense fallback={<>loading...</>}>
+						<Instructions />
+					</Suspense>
+				),
 			},
 		],
 	},

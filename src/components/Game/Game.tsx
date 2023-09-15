@@ -1,10 +1,7 @@
 import { useGameContext } from './useGameContext'
 
-// TODO import aliases
-// TODO check loading states UX
-
-import CardImage from '../CardImage/CardImage'
-import CardPlaceholder from '../CardPlaceholder/CardPlaceholder'
+import CardImage from '@/components/CardImage/CardImage'
+import CardPlaceholder from '@/components/CardPlaceholder/CardPlaceholder'
 
 import styles from './Game.module.css'
 

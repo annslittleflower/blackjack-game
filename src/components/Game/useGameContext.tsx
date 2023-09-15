@@ -41,8 +41,13 @@ type GameContextType = {
 export const GameContext = createContext<GameContextType | null>(null)
 
 const ACTION_TYPES = {
+	CARD_DECK_LOADING: 'CARD_DECK_LOADING',
 	CARD_DECK_LOADED: 'CARD_DECK_LOADED',
+
+	DEALER_CARDS_LOADING: 'DEALER_CARDS_LOADING',
 	DEALER_CARDS_LOADED: 'DEALER_CARDS_LOADED',
+
+	USER_CARD_LOADING: 'USER_CARD_LOADING',
 	USER_CARD_LOADED: 'USER_CARD_LOADED',
 
 	PLAY_AGAIN: 'PLAY_AGAIN',
@@ -76,6 +81,7 @@ const reducer = (
 			return {
 				...state,
 				isCardDeckLoading: false,
+				// TODO think how to fix 'as' assertions
 				cardDeckId: payload as string,
 			}
 		case ACTION_TYPES.DEALER_CARDS_LOADED:
@@ -183,6 +189,9 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 	}, [])
 
 	const drawUserCard = async () => {
+		dispatch({
+			type: ACTION_TYPES.USER_CARD_LOADING,
+		})
 		const userCardResponse = await getUserCardRequest(cardDeckId as string)
 
 		dispatch({
@@ -200,6 +209,18 @@ const GameContextProvider = ({ children }: { children: ReactNode }) => {
 	const startAgain = async () => {
 		dispatch({
 			type: ACTION_TYPES.PLAY_AGAIN,
+		})
+
+		dispatch({
+			type: ACTION_TYPES.CARD_DECK_LOADING,
+		})
+
+		dispatch({
+			type: ACTION_TYPES.DEALER_CARDS_LOADING,
+		})
+
+		dispatch({
+			type: ACTION_TYPES.USER_CARD_LOADING,
 		})
 
 		await shuffleExistingDeckRequest(cardDeckId)
